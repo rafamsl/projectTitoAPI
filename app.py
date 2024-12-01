@@ -6,10 +6,12 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
 import json
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
+CORS(app)
 
 db.init_app(app)
 migrate = Migrate(app, db)
