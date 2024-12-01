@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from models import db, Prompt, User, Story
 from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS
-from utils import render_prompt, call_openai
+from utils.utils import render_prompt, call_openai
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
