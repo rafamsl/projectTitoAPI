@@ -4,7 +4,7 @@ from config import OPENAI_API_KEY
 openai.api_key = OPENAI_API_KEY
 
 def render_prompt(form_data):
-    main_prompt = "Your template prompt here"  # Replace with a database query or fixed string
+    main_prompt = Prompt.query.filter_by(name="main_prompt").first().content
     rendered_prompt = main_prompt.format(
         language=form_data.get('language', ''),
         character_name=form_data.get('character_name', ''),
