@@ -7,6 +7,8 @@ from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
 import json
 from flask_cors import CORS
+from utils.logger import logger
+import uuid
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
@@ -84,48 +86,64 @@ def delete_story(story_id):
 @app.route('/submit', methods=['POST'])
 def submit():
     data = request.get_json()
+    request_id = str(uuid.uuid4())
+    
+    logger.info(f'Request {request_id}: New story submission received')
+    
     if not data:
+        logger.error(f'Request {request_id}: Invalid input - no data received')
         return jsonify({"error": "Invalid input"}), 400
 
-    form_data = {
-        'language': data.get('language'),
-        'character_name': data.get('character_name'),
-        'character_description': data.get('character_description'),
-        'story_goal': data.get('story_goal'),
-    }
-
-    rendered_prompt = render_prompt(form_data)
-    openai_result = call_openai(rendered_prompt)
-
-    if 'error' in openai_result:
-        return jsonify({"error": openai_result['error']}), 500
-
-    ai_response_str = openai_result['ai_response']
-    estimated_cost = openai_result['estimated_cost']
-
     try:
-        ai_response_json = json.loads(ai_response_str)
-    except json.JSONDecodeError:
-        return jsonify({"error": "Unable to parse AI response as JSON."}), 500
+        form_data = {
+            'language': data.get('language'),
+            'character_name': data.get('character_name'),
+            'character_description': data.get('character_description'),
+            'story_goal': data.get('story_goal'),
+        }
+        
+        logger.info(f'Request {request_id}: Processing story with parameters: {form_data}')
+        
+        rendered_prompt = render_prompt(form_data)
+        logger.debug(f'Request {request_id}: Rendered prompt: {rendered_prompt}')
+        
+        openai_result = call_openai(rendered_prompt)
+        
+        if 'error' in openai_result:
+            logger.error(f'Request {request_id}: OpenAI API error - {openai_result["error"]}')
+            return jsonify({"error": openai_result['error']}), 500
 
-    story_title = ai_response_json.get("Title", "Untitled Story")
-    user_id = 1  # Hardcoded user ID
-
-    new_story = Story(
-        user_id=user_id,
-        title=story_title,
-        content=ai_response_json,
-        created_date=datetime.utcnow()
-    )
-    db.session.add(new_story)
-    db.session.commit()
-
-    return jsonify({
-        "story_id": new_story.id,
-        "title": new_story.title,
-        "content": new_story.content,
-        "estimated_cost": estimated_cost
-    }), 201
+        logger.info(f'Request {request_id}: Successfully generated story from OpenAI')
+        
+        try:
+            ai_response_json = json.loads(openai_result['ai_response'])
+            story_title = ai_response_json.get("Title", "Untitled Story")
+            
+            new_story = Story(
+                user_id=1,  # Hardcoded user ID
+                title=story_title,
+                content=ai_response_json,
+                created_date=datetime.utcnow()
+            )
+            db.session.add(new_story)
+            db.session.commit()
+            
+            logger.info(f'Request {request_id}: Story saved to database with ID {new_story.id}')
+            
+        except json.JSONDecodeError:
+            logger.error(f'Request {request_id}: Failed to parse AI response as JSON')
+            return jsonify({"error": "Unable to parse AI response as JSON."}), 500
+        
+        return jsonify({
+            "story_id": new_story.id,
+            "title": new_story.title,
+            "content": new_story.content,
+            "estimated_cost": openai_result.get('estimated_cost')
+        }), 201
+        
+    except Exception as e:
+        logger.error(f'Request {request_id}: Unexpected error - {str(e)}', exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 # Route to get all stories
 @app.route('/stories', methods=['GET'])
