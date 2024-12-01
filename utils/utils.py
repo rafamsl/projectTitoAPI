@@ -16,11 +16,15 @@ def render_prompt(form_data):
 
 def call_openai(prompt):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "system", "content": prompt}],
-            temperature=0.7
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt}
+            ],
+            temperature=0.7,
+            response_format={"type": "json_object"}
         )
+
         return {"ai_response": response['choices'][0]['message']['content']}
     except Exception as e:
         return {"error": str(e)}
