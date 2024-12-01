@@ -4,6 +4,8 @@ from models import Prompt
 
 openai.api_key = OPENAI_API_KEY
 
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
 def render_prompt(form_data):
     main_prompt = Prompt.query.filter_by(name="main_prompt").first().content
     rendered_prompt = main_prompt.format(
