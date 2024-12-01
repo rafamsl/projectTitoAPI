@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from models import db, Prompt, User, Story
-from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS
+from config import SQLALCHEMY_DATABASE_URI_DEV, SQLALCHEMY_DATABASE_URI_PROD, SQLALCHEMY_TRACK_MODIFICATIONS
 from utils.utils import render_prompt, call_openai
 from datetime import datetime
 from werkzeug.security import generate_password_hash
@@ -9,9 +9,10 @@ import json
 from flask_cors import CORS
 from utils.logger import logger
 import uuid
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI_DEV if os.getenv('IS_LOCAL') == 'true' else SQLALCHEMY_DATABASE_URI_PROD
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
 CORS(app)
 
@@ -138,7 +139,7 @@ def submit():
             "story_id": new_story.id,
             "title": new_story.title,
             "content": new_story.content,
-            "estimated_cost": openai_result.get('estimated_cost')
+            "estimated_cost": openai_result['estimated_cost']
         }), 201
         
     except Exception as e:
