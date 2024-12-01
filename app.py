@@ -88,8 +88,6 @@ def submit():
         return jsonify({"error": "Invalid input"}), 400
 
     form_data = {
-        'target_audience': data.get('target_audience'),
-        'target_audience_rules': data.get('target_audience_rules'),
         'language': data.get('language'),
         'character_name': data.get('character_name'),
         'character_description': data.get('character_description'),

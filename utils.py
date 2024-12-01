@@ -6,8 +6,6 @@ openai.api_key = OPENAI_API_KEY
 def render_prompt(form_data):
     main_prompt = "Your template prompt here"  # Replace with a database query or fixed string
     rendered_prompt = main_prompt.format(
-        target_audience=form_data.get('target_audience', ''),
-        target_audience_rules=form_data.get('target_audience_rules', ''),
         language=form_data.get('language', ''),
         character_name=form_data.get('character_name', ''),
         character_description=form_data.get('character_description', ''),
