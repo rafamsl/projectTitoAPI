@@ -10,12 +10,18 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 def render_prompt(form_data):
     main_prompt = Prompt.query.filter_by(name="main_prompt").first().content
-    rendered_prompt = main_prompt.format(
-        language=form_data.get('language', ''),
-        character_name=form_data.get('character_name', ''),
-        character_description=form_data.get('character_description', ''),
-        story_goal=form_data.get('story_goal', '')
-    )
+    # Use Template string substitution for specific placeholders only
+    replacements = {
+        '{language}': form_data.get('language', ''),
+        '{character_name}': form_data.get('character_name', ''),
+        '{character_description}': form_data.get('character_description', ''),
+        '{story_goal}': form_data.get('story_goal', '')
+    }
+    
+    rendered_prompt = main_prompt
+    for key, value in replacements.items():
+        rendered_prompt = rendered_prompt.replace(key, value)
+    
     return rendered_prompt
 
 def calculate_cost(prompt_tokens, completion_tokens):
