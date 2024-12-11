@@ -143,13 +143,11 @@ def generate_cover_image(prompt):
     finish_reason = response.headers.get("finish-reason")
     seed = response.headers.get("seed")
 
-    print({
+    return {
         "output_image": output_image,
         "finish_reason": finish_reason,
         "seed": seed
-    })
-
-    return
+    }
 
 def generate_scene_images(data):
     pass   
