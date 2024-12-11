@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from models import db, Prompt, User, Story
 from config import SQLALCHEMY_DATABASE_URI_DEV, SQLALCHEMY_DATABASE_URI_PROD, SQLALCHEMY_TRACK_MODIFICATIONS
-from utils.utils import render_prompt, call_openai
+from utils.utils import render_prompt, call_openai, render_prompt_for_cover_image, generate_cover_image
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
@@ -145,6 +145,13 @@ def submit():
     except Exception as e:
         logger.error(f'Request {request_id}: Unexpected error - {str(e)}', exc_info=True)
         return jsonify({"error": "An unexpected error occurred"}), 500
+    
+# Route to create images
+@app.route('/create_images/<int:story_id>', methods=['POST'])
+def create_images(story_id):
+    cover_image_prompt = render_prompt_for_cover_image(story_id)
+    cover_image_url = generate_cover_image(cover_image_prompt)
+    return jsonify(cover_image_url), 201
 
 # Route to get all stories
 @app.route('/stories', methods=['GET'])

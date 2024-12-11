@@ -1,10 +1,9 @@
 import openai
-from config import OPENAI_API_KEY
+from config import OPENAI_API_KEY, STABILITY_API_KEY
 from models import Prompt
 import os
 import json
-
-openai.api_key = OPENAI_API_KEY
+import requests
 
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
@@ -32,7 +31,39 @@ def calculate_cost(prompt_tokens, completion_tokens):
     cost = (prompt_tokens * input_rate) + (completion_tokens * output_rate)
     return round(cost, 6)  # Round to 6 decimal places
 
-def call_openai(prompt):
+def call_stability(host,params,files = None):
+    headers = {
+        "Accept": "image/*",
+        "Authorization": f"Bearer {STABILITY_API_KEY}"
+    }
+
+    if files is None:
+        files = {}
+
+    # Encode parameters
+    image = params.pop("image", None)
+    mask = params.pop("mask", None)
+    if image is not None and image != '':
+        files["image"] = open(image, 'rb')
+    if mask is not None and mask != '':
+        files["mask"] = open(mask, 'rb')
+    if len(files)==0:
+        files["none"] = ''
+
+    # Send request
+    print(f"Sending REST request to {host}...")
+    response = requests.post(
+        host,
+        headers=headers,
+        files=files,
+        data=params
+    )
+    if not response.ok:
+        raise Exception(f"HTTP {response.status_code}: {response.text}")
+
+    return response
+
+def call_openai(prompt,json=True):
     if os.getenv('IS_LOCAL') == 'true':
         mock_response = {
             "scene_1": {
@@ -54,6 +85,11 @@ def call_openai(prompt):
         }
         return {"ai_response": json.dumps(mock_response), "estimated_cost": 0.00017}
         
+    if json:
+        response_format={"type": "json_object"}
+    else:
+        response_format={"type": "text"}
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini", 
@@ -62,7 +98,7 @@ def call_openai(prompt):
             ],
             temperature=0.7,
             max_tokens=4000,
-            response_format={"type": "json_object"}
+            response_format=response_format
         )
         # Calculate cost from token usage
         prompt_tokens = response.usage.prompt_tokens
@@ -75,3 +111,45 @@ def call_openai(prompt):
         }
     except Exception as e:
         return {"error": str(e)}
+    
+def render_prompt_for_cover_image(story_id):
+    cover_image_prompt = Prompt.query.filter_by(name="cover_image").first().content
+    story = Prompt.query.filter_by(id=story_id).first().content
+
+    replacements = {
+        '{story}' : story
+    }
+    rendered_prompt = cover_image_prompt
+    for key, value in replacements.items():
+        rendered_prompt = rendered_prompt.replace(key, value)
+    return rendered_prompt
+
+def generate_cover_image(prompt):
+    host = f"https://api.stability.ai/v2beta/stable-image/generate/core"
+    aspect_ratio = "21:9" #@param ["21:9", "16:9", "3:2", "5:4", "1:1", "4:5", "2:3", "9:16", "9:21"]
+    seed = 0 #@param {type:"integer"}
+    output_format = "jpeg" #@param ["webp", "jpeg", "png"]
+
+    params = {
+    "prompt" : prompt,
+    "aspect_ratio" : aspect_ratio,
+        "seed" : seed,
+        "output_format": output_format
+    }
+
+    response = call_stability(host,params)
+
+    output_image = response.content
+    finish_reason = response.headers.get("finish-reason")
+    seed = response.headers.get("seed")
+
+    print({
+        "output_image": output_image,
+        "finish_reason": finish_reason,
+        "seed": seed
+    })
+
+    return
+
+def generate_scene_images(data):
+    pass   
