@@ -130,6 +130,8 @@ def generate_cover_image(prompt):
     seed = 0 #@param {type:"integer"}
     output_format = "jpeg" #@param ["webp", "jpeg", "png"]
 
+    
+
     params = {
     "prompt" : prompt,
     "aspect_ratio" : aspect_ratio,

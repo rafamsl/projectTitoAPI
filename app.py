@@ -150,7 +150,8 @@ def submit():
 @app.route('/create_images/<int:story_id>', methods=['POST'])
 def create_images(story_id):
     cover_image_prompt = render_prompt_for_cover_image(story_id)
-    cover_image_url = generate_cover_image(cover_image_prompt)
+    created_prompt = call_openai(cover_image_prompt, False)
+    cover_image_url = generate_cover_image(created_prompt)
     return jsonify(cover_image_url), 201
 
 # Route to get all stories
